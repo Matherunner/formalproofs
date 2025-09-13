@@ -70,7 +70,8 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
     have v_le : v ≤ L - ke * τ * M * A := (one_le_div₀ vpos).mp h_cos_ζ_le_one
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
-    simp [γ₁, *]
+    simp only [γ₁]
+    nlinarith
 
   simp [h_cos_ζ_ge_one]
   have v_cancel : v * ((L - ke * τ * M * A) / v) = L - ke * τ * M * A := by field_simp
@@ -78,29 +79,19 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
   rcases le_total (v * cθ) (L - ke * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
   · rw [μ_eq_γ₁ (by linarith) (by linarith)]
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
-    simp [γ₁, le_div_iff₀', *]
+    simp only [γ₁]
+    nlinarith
 
   by_cases h_zero : L - v * cθ ≤ 0
   · simp [μ_eq_const_0 h_zero, add_assoc, le_add_iff_nonneg_right]
     apply le_add_of_nonneg_of_le (by apply pow_two_nonneg)
     field_simp
-    apply mul_nonneg (by linarith)
-    apply μ_nonneg (by linarith)
+    exact mul_nonneg (by linarith) (μ_nonneg (by linarith))
 
-  simp at h_zero
-  rw [μ_eq_γ₂ h_zero h_v_cθ_ge]
+  rw [μ_eq_γ₂ (by linarith) h_v_cθ_ge]
   rw [μ_eq_γ₁ (by linarith) (by linarith)]
-  simp [γ₁, γ₂_θ]
-  rw [add_assoc, add_assoc, add_le_add_iff_left, ← mul_div_assoc]
-  have : 2 * v * (ke * τ * M * A) * (L - ke * τ * M * A) / v =
-      2 * (ke * τ * M * A) * (L - ke * τ * M * A) := by field_simp
-  rw [this]
-  have : (L - v * cθ) ^ 2 + 2 * v * (L - v * cθ) * cθ ≤
-      (ke * τ * M * A) ^ 2 + 2 * (ke * τ * M * A) * (L - ke * τ * M * A) ↔
-      (L - ke * τ * M * A) ^ 2 ≤ (v * cθ) ^ 2 := by grind
-  rw [this]
-  rw [sq_le_sq₀ (by linarith) (by linarith)]
-  linarith [h_v_cθ_ge]
+  unfold γ₁ γ₂_θ
+  nlinarith [h_v_cθ_ge]
 
 lemma next_speed_sq_γ₁_cond (ke τ M A L v θ : ℝ)
     : ke * τ * M * A < L - v * Real.cos θ ∧ 0 < L - v * Real.cos θ
