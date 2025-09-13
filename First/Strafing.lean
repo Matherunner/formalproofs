@@ -7,24 +7,23 @@ noncomputable def μ (ke τ M A L v cθ : ℝ) : ℝ :=
   if γ₂_θ L v cθ ≤ 0 then 0 else min (γ₁ ke τ M A) (γ₂_θ L v cθ)
 
 lemma μ_eq_const_0 {ke τ M A L v cθ : ℝ} (h : L - v * cθ ≤ 0) : μ ke τ M A L v cθ = 0 := by
-  simp_all [μ, γ₂_θ]
+  simp [μ, γ₂_θ, *]
 
 lemma μ_eq_γ₁ {ke τ M A L v cθ : ℝ} (h₁ : v * cθ < L) (h₂ : v * cθ ≤ L - ke * τ * M * A) :
     μ ke τ M A L v cθ = γ₁ ke τ M A := by
   have : ke * τ * M * A ≤ L - v * cθ := by linarith
-  simp_all [μ, γ₁, γ₂_θ]
+  simp [μ, γ₁, γ₂_θ, *]
 
 lemma μ_eq_γ₂ {ke τ M A L v cθ : ℝ} (h₁ : v * cθ < L) (h₂ : L - ke * τ * M * A ≤ v * cθ) :
     μ ke τ M A L v cθ = γ₂_θ L v cθ := by
   have : L - v * cθ ≤ ke * τ * M * A := by linarith
-  simp_all [μ, γ₁, γ₂_θ]
+  simp [μ, γ₁, γ₂_θ, *]
 
 lemma μ_nonneg {ke τ M A L v cθ : ℝ} (h₁ : 0 ≤ ke * τ * M * A) : 0 ≤ μ ke τ M A L v cθ := by
-  simp_all [μ, γ₁, γ₂_θ]
-  by_cases h : L - v * cθ ≤ 0
-  · simp_all
-  · apply ite_nonneg (by linarith)
-    apply le_min h₁ (by linarith [h])
+  unfold μ γ₁ γ₂_θ
+  split_ifs
+  · rfl
+  · exact le_min h₁ (by linarith)
 
 noncomputable def next_speed_sq' (ke τ M A L v cθ : ℝ) : ℝ :=
   v ^ 2 + (μ ke τ M A L v cθ) ^ 2 + 2 * v * (μ ke τ M A L v cθ) * cθ
@@ -41,12 +40,12 @@ noncomputable def next_speed_sq_γ₂' (L v cθ : ℝ) : ℝ := v ^ 2 * (1 - cθ
 lemma next_speed_sq_γ₁'_monotone_if_pos_γ₁ (ke τ M A v : ℝ) (h₁ : 0 < ke * τ * M * A) (h₂ : 0 ≤ v)
     : MonotoneOn (next_speed_sq_γ₁' ke τ M A v) (Set.Icc (-1) 1) := by
   intro cθ₁ between₁ cθ₂ between₂ cθ₁_le_cθ₂
-  simp_all [next_speed_sq_γ₁']
-  exact mul_le_mul_of_nonneg_left cθ₁_le_cθ₂ (by simp [h₂])
+  unfold next_speed_sq_γ₁'
+  gcongr
 
 lemma next_speed_sq_γ₂'_max (L v : ℝ) : IsMaxOn (next_speed_sq_γ₂' L v) Set.univ 0 := by
   intro x
-  simp_all [next_speed_sq_γ₂']
+  simp [next_speed_sq_γ₂']
   by_cases h : v ^ 2 = 0
   · rw [h]
     norm_num
@@ -63,7 +62,7 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
   intro vpos h₁ h₂ cθ ⟨_, cθ_le_one⟩
   dsimp
   unfold next_speed_sq'
-  have v_mul_cθ_le_v : v * cθ ≤ v := (mul_le_iff_le_one_right vpos).mpr cθ_le_one
+  have v_mul_cθ_le_v : v * cθ ≤ v := by nlinarith
 
   rcases le_total (1 : ℝ) ((L - ke * τ * M * A) / v) with h_cos_ζ_le_one | h_cos_ζ_ge_one
   · simp [h_cos_ζ_le_one]
