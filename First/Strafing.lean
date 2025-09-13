@@ -60,35 +60,37 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
     0 ≤ L - ke * τ * M * A →
     0 < ke * τ * M * A →
     IsMaxOn (next_speed_sq' ke τ M A L v) unitInterval (min ((L - ke * τ * M * A) / v) 1) := by
-  intro vpos h₁ h₂ cθ ⟨set₁, set₂⟩
-  simp_all [next_speed_sq']
-  have v_mul_cθ_le_v : v * cθ ≤ v := by exact (mul_le_iff_le_one_right vpos).mpr set₂
-  have h' : L - ke * τ * M * A < L := by linarith
-  obtain min_h | min_h := le_total 1 ((L - ke * τ * M * A) / v)
-  · simp [min_h]
-    have : v ≤ L - ke * τ * M * A := by exact (one_le_div₀ vpos).mp min_h
+  intro vpos h₁ h₂ cθ ⟨_, cθ_le_one⟩
+  dsimp
+  unfold next_speed_sq'
+  have v_mul_cθ_le_v : v * cθ ≤ v := (mul_le_iff_le_one_right vpos).mpr cθ_le_one
+
+  rcases le_total (1 : ℝ) ((L - ke * τ * M * A) / v) with h_cos_ζ_le_one | h_cos_ζ_ge_one
+  · simp [h_cos_ζ_le_one]
+    have v_le : v ≤ L - ke * τ * M * A := (one_le_div₀ vpos).mp h_cos_ζ_le_one
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
-    simp_all [γ₁]
-  simp [min_h]
-  have v_cancel₁ : v * ((L - ke * τ * M * A) / v) = L - ke * τ * M * A := by
-    rw [mul_div_cancel₀ _ (by linarith)]
-  obtain h_disc | h_disc := le_total (v * cθ) (L - ke * τ * M * A)
+    simp [γ₁, *]
+
+  simp [h_cos_ζ_ge_one]
+  have v_cancel : v * ((L - ke * τ * M * A) / v) = L - ke * τ * M * A := by field_simp
+
+  rcases le_total (v * cθ) (L - ke * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
   · rw [μ_eq_γ₁ (by linarith) (by linarith)]
     rw [μ_eq_γ₁ (by linarith) (by linarith)]
-    simp_all [γ₁, le_div_iff₀]
-    linarith [h_disc]
+    simp [γ₁, le_div_iff₀', *]
+
   by_cases h_zero : L - v * cθ ≤ 0
-  · simp [μ_eq_const_0 h_zero]
-    rw [add_assoc, le_add_iff_nonneg_right]
+  · simp [μ_eq_const_0 h_zero, add_assoc, le_add_iff_nonneg_right]
     apply le_add_of_nonneg_of_le (by apply pow_two_nonneg)
     field_simp
     apply mul_nonneg (by linarith)
-    apply μ_nonneg (by linarith [h₂])
+    apply μ_nonneg (by linarith)
+
   simp at h_zero
-  rw [μ_eq_γ₂ (by linarith [h_zero]) h_disc]
+  rw [μ_eq_γ₂ h_zero h_v_cθ_ge]
   rw [μ_eq_γ₁ (by linarith) (by linarith)]
-  simp_all [γ₁, γ₂_θ]
+  simp [γ₁, γ₂_θ]
   rw [add_assoc, add_assoc, add_le_add_iff_left, ← mul_div_assoc]
   have : 2 * v * (ke * τ * M * A) * (L - ke * τ * M * A) / v =
       2 * (ke * τ * M * A) * (L - ke * τ * M * A) := by field_simp
@@ -98,7 +100,7 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
       (L - ke * τ * M * A) ^ 2 ≤ (v * cθ) ^ 2 := by grind
   rw [this]
   rw [sq_le_sq₀ (by linarith) (by linarith)]
-  linarith [h_disc]
+  linarith [h_v_cθ_ge]
 
 lemma next_speed_sq_γ₁_cond (ke τ M A L v θ : ℝ)
     : ke * τ * M * A < L - v * Real.cos θ ∧ 0 < L - v * Real.cos θ
