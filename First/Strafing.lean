@@ -104,7 +104,7 @@ theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
 
   by_cases h_const_zero : L - v * cθ ≤ 0
   · simp [μ_eq_const_0, pow_two_nonneg, *]
-  rw [μ_eq_γ₂ (by linarith [h_const_zero]) (by linarith)]
+  rw [μ_eq_γ₂ (by linarith) (by linarith)]
   unfold γ₂_θ
   ring_nf
   nlinarith
