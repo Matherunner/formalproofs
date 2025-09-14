@@ -89,6 +89,32 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' {kₑ τ M A L v : ℝ}
   unfold γ₁ γ₂_θ
   nlinarith [h_v_cθ_ge]
 
+theorem max_at_neg_one_if_0_le_cos_ζ'_le_cos_ζ {kₑ τ M A L v : ℝ}
+    (vpos : 0 < v) (h₁ : kₑ * τ * M * A ≤ 0) (h₂ : 0 ≤ L) :
+    IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) (-1) := by
+  intro cθ ⟨cθ_ge_neg_one, cθ_le_one⟩
+  dsimp [next_speed_sq']
+  have v_neg_one_le_L : v * (-1) < L := by linarith
+  rw [μ_eq_γ₁ v_neg_one_le_L (by linarith)]
+  simp [γ₁, *]
+
+  by_cases h_zero : L - v * cθ ≤ 0
+  · rw [μ_eq_const_0 h_zero]
+    nlinarith
+
+  rcases le_total (v * cθ) (L - kₑ * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
+  · rw [μ_eq_γ₁ (by linarith) (by linarith)]
+    unfold γ₁
+    ring_nf
+    simp
+    field_simp
+    apply mul_nonpos_iff.mpr
+    right
+    constructor <;> nlinarith
+  rw [μ_eq_γ₂ (by linarith) (by linarith)]
+  unfold γ₂_θ
+  nlinarith
+
 theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
     (h₁ : L - kₑ * τ * M * A ≤ 0) (h₂ : 0 < L) :
     IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) 0 := by
