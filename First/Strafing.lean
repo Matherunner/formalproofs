@@ -94,7 +94,7 @@ theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
     IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) 0 := by
   intro cθ ⟨cθ_ge_neg_one, cθ_le_one⟩
   dsimp [next_speed_sq']
-  simp [μ_eq_γ₂, γ₂_θ, add_assoc, add_le_add_iff_left, *]
+  simp [μ_eq_γ₂, γ₂_θ, *]
 
   rcases le_total (v * cθ) (L - kₑ * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
   · rw [μ_eq_γ₁ (by linarith) h_v_cθ_le]
