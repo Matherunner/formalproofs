@@ -43,7 +43,7 @@ lemma next_speed_sq_γ₁'_monotone_if_pos_γ₁ (kₑ τ M A v : ℝ) (h₁ : 0
   unfold next_speed_sq_γ₁'
   gcongr
 
-lemma next_speed_sq_γ₂'_max (L v : ℝ) : IsMaxOn (next_speed_sq_γ₂' L v) Set.univ 0 := by
+lemma next_speed_sq_γ₂'_max {L v : ℝ} : IsMaxOn (next_speed_sq_γ₂' L v) Set.univ 0 := by
   intro x
   simp [next_speed_sq_γ₂']
   by_cases h : v ^ 2 = 0
@@ -58,8 +58,7 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' {kₑ τ M A L v : ℝ}
     (vpos : 0 < v) (h₁ : 0 ≤ L - kₑ * τ * M * A) (h₂ : 0 < kₑ * τ * M * A) :
     IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) (min ((L - kₑ * τ * M * A) / v) 1) := by
   intro cθ ⟨_, cθ_le_one⟩
-  dsimp
-  unfold next_speed_sq'
+  dsimp [next_speed_sq']
   have v_mul_cθ_le_v : v * cθ ≤ v := by nlinarith
 
   rcases le_total (1 : ℝ) ((L - kₑ * τ * M * A) / v) with h_cos_ζ_le_one | h_cos_ζ_ge_one
@@ -91,9 +90,24 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' {kₑ τ M A L v : ℝ}
   nlinarith [h_v_cθ_ge]
 
 theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
-    (vpos : 0 < v) (h₁ : L - kₑ * τ * M * A ≤ 0) (h₂ : 0 < kₑ * τ * M * A) :
+    (h₁ : L - kₑ * τ * M * A ≤ 0) (h₂ : 0 < kₑ * τ * M * A) (h₃ : 0 < L) :
     IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) 0 := by
-  sorry
+  intro cθ ⟨cθ_ge_neg_one, cθ_le_one⟩
+  dsimp [next_speed_sq']
+  simp [μ_eq_γ₂, γ₂_θ, add_assoc, add_le_add_iff_left, *]
+
+  rcases le_total (v * cθ) (L - kₑ * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
+  · rw [μ_eq_γ₁ (by linarith) h_v_cθ_le]
+    unfold γ₁
+    ring_nf
+    nlinarith
+
+  by_cases h_const_zero : L - v * cθ ≤ 0
+  · simp [μ_eq_const_0, pow_two_nonneg, *]
+  rw [μ_eq_γ₂ (by linarith [h_const_zero]) (by linarith)]
+  unfold γ₂_θ
+  ring_nf
+  nlinarith
 
 lemma next_speed_sq_γ₁_cond (kₑ τ M A L v θ : ℝ)
     : kₑ * τ * M * A < L - v * Real.cos θ ∧ 0 < L - v * Real.cos θ
