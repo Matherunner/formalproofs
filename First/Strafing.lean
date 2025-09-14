@@ -90,7 +90,7 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' {kₑ τ M A L v : ℝ}
   nlinarith [h_v_cθ_ge]
 
 theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
-    (h₁ : L - kₑ * τ * M * A ≤ 0) (h₂ : 0 < kₑ * τ * M * A) (h₃ : 0 < L) :
+    (h₁ : L - kₑ * τ * M * A ≤ 0) (h₂ : 0 < L) :
     IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) 0 := by
   intro cθ ⟨cθ_ge_neg_one, cθ_le_one⟩
   dsimp [next_speed_sq']
