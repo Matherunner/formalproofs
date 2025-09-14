@@ -135,6 +135,33 @@ theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {kₑ τ M A L v : ℝ}
   ring_nf
   nlinarith
 
+theorem no_change_if_cos_ζ'_le_0_le_cos_ζ_and_v_le_neg_L {kₑ τ M A L v cθ : ℝ}
+    {cθ_range : -1 ≤ cθ ∧ cθ ≤ 1} (vpos : 0 ≤ v) (v_le_L : v ≤ -L) :
+    next_speed_sq' kₑ τ M A L v cθ = v ^ 2 := by
+  dsimp [next_speed_sq']
+  rw [μ_eq_const_0 (by nlinarith)]
+  ring_nf
+
+-- TODO: This theorem seems to be a stronger version of max_at_neg_one_if_0_le_cos_ζ'_le_cos_ζ?
+theorem max_at_neg_on_if_cos_ζ'_le_0_le_cos_ζ {kₑ τ M A L v : ℝ}
+    (vpos : 0 ≤ v) (h₁ : kₑ * τ * M * A ≤ 0) (h₂ : -L < v) :
+    IsMaxOn (next_speed_sq' kₑ τ M A L v) (Set.Icc (-1) 1) (-1) := by
+  intro cθ ⟨cθ_ge_neg_one, cθ_le_one⟩
+  dsimp [next_speed_sq']
+  have : v * (-1) < L := by linarith
+  rw [μ_eq_γ₁ this (by linarith)]
+  simp [γ₁, *]
+
+  by_cases h_zero : L - v * cθ ≤ 0
+  · rw [μ_eq_const_0 (by linarith)]
+    nlinarith
+  rw [μ_eq_γ₁ (by linarith) (by linarith)]
+  unfold γ₁
+  ring_nf
+  simp
+  field_simp
+  exact mul_nonpos_of_nonpos_of_nonneg (by nlinarith) (by linarith)
+
 lemma next_speed_sq_γ₁_cond (kₑ τ M A L v θ : ℝ)
     : kₑ * τ * M * A < L - v * Real.cos θ ∧ 0 < L - v * Real.cos θ
       → next_speed_sq kₑ τ M A L v θ = next_speed_sq_γ₁ kₑ τ M A v θ := by
