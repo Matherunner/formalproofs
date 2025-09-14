@@ -54,11 +54,11 @@ lemma next_speed_sq_γ₂'_max (L v : ℝ) : IsMaxOn (next_speed_sq_γ₂' L v) 
     apply sub_le_self
     exact pow_two_nonneg x
 
-theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
+theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' {ke τ M A L v : ℝ} :
     0 < v →
     0 ≤ L - ke * τ * M * A →
     0 < ke * τ * M * A →
-    IsMaxOn (next_speed_sq' ke τ M A L v) unitInterval (min ((L - ke * τ * M * A) / v) 1) := by
+    IsMaxOn (next_speed_sq' ke τ M A L v) (Set.Icc (-1) 1) (min ((L - ke * τ * M * A) / v) 1) := by
   intro vpos h₁ h₂ cθ ⟨_, cθ_le_one⟩
   dsimp
   unfold next_speed_sq'
@@ -91,6 +91,13 @@ theorem max_at_cos_ζ_if_0_le_cos_ζ_le_cos_ζ' (ke τ M A L v : ℝ) :
   rw [μ_eq_γ₁ (by linarith) (by linarith)]
   unfold γ₁ γ₂_θ
   nlinarith [h_v_cθ_ge]
+
+theorem max_at_0_if_cos_ζ_le_0_le_cos_ζ' {ke τ M A L v : ℝ} :
+    0 < v →
+    L - ke * τ * M * A ≤ 0 →
+    0 < ke * τ * M * A →
+    IsMaxOn (next_speed_sq' ke τ M A L v) (Set.Icc (-1) 1) 0 := by
+  sorry
 
 lemma next_speed_sq_γ₁_cond (ke τ M A L v θ : ℝ)
     : ke * τ * M * A < L - v * Real.cos θ ∧ 0 < L - v * Real.cos θ
