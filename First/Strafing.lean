@@ -142,6 +142,21 @@ theorem no_change_if_cos_ζ'_le_0_le_cos_ζ_and_v_le_neg_L {kₑ τ M A L v cθ 
   rw [μ_eq_const_0 (by nlinarith)]
   ring_nf
 
+theorem no_increase_if_cos_ζ_le_cos_ζ'_le_0 {kₑ τ M A L v cθ : ℝ}
+    (h₁ : L ≤ 0) (h₂ : 0 ≤ kₑ * τ * M * A) :
+    next_speed_sq' kₑ τ M A L v cθ ≤ v ^ 2 := by
+  dsimp [next_speed_sq']
+  by_cases h_const_zero : L - v * cθ ≤ 0
+  · rw [μ_eq_const_0 (by linarith)]
+    linarith
+  rcases le_total (v * cθ) (L - kₑ * τ * M * A) with h_v_cθ_le | h_v_cθ_ge
+  · rw [μ_eq_γ₁ (by linarith) (by linarith)]
+    unfold γ₁
+    nlinarith
+  rw [μ_eq_γ₂ (by linarith) (by linarith)]
+  unfold γ₂_θ
+  nlinarith
+
 -- TODO: This theorem seems to be a stronger version of max_at_neg_one_if_0_le_cos_ζ'_le_cos_ζ?
 theorem max_at_neg_on_if_cos_ζ'_le_0_le_cos_ζ {kₑ τ M A L v : ℝ}
     (vpos : 0 ≤ v) (h₁ : kₑ * τ * M * A ≤ 0) (h₂ : -L < v) :
