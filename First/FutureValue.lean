@@ -38,13 +38,11 @@ theorem fv_inc_sol_satisfied (p₀ r rₚ c₀ : ℝ) :
     ∀ n, fv_inc n p₀ r rₚ c₀ = fv_inc_sol n p₀ r rₚ c₀ := by
   unfold fv_inc fv_inc_sol
   intro n
-  by_cases r_ne_rₚ : r ≠ rₚ
-  · induction n with
-    | zero => simp
-    | succ => grind [fv_inc]
   induction n with
   | zero => simp
-  | succ n =>
+  | succ n ih =>
+    by_cases r_ne_rₚ : r ≠ rₚ
+    · grind [fv_inc]
     by_cases h : n = 0
     · simp [h]
       grind [fv_inc]
