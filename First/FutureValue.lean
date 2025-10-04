@@ -36,21 +36,12 @@ noncomputable def fv_inc_sol (n : ℕ) (p₀ r rₚ c₀ : ℝ) : ℝ :=
 -- Closed form satisfies the recurrence relation
 theorem fv_inc_sol_satisfied (p₀ r rₚ c₀ : ℝ) :
     ∀ n, fv_inc n p₀ r rₚ c₀ = fv_inc_sol n p₀ r rₚ c₀ := by
-  unfold fv_inc fv_inc_sol
   intro n
   induction n with
-  | zero => simp
-  | succ n =>
-    by_cases h₁ : rₚ = r
-    · by_cases h₂ : n = 0
-      · simp [h₂]
-        grind [fv_inc]
-      simp [h₁]
-      rw [eq_comm]
-      have h₃ : n = n - 1 + 1 := by grind
-      calc
-        _ = c₀ * (1 + r) ^ (n + 1) + p₀ * n * (1 + r) ^ (n - 1 + 1) + p₀ * (1 + r) ^ n := by
-          rw [h₃]
-          grind
-        _ = (1 + r) * fv_inc n p₀ r r c₀ + p₀ * (1 + r) ^ n := by grind [fv_inc]
-    grind [fv_inc]
+  | zero => simp [fv_inc, fv_inc_sol]
+  | succ n ih =>
+    simp [fv_inc, fv_inc_sol, ih]
+    by_cases h_r_eq : r = rₚ
+    · -- Split by n = 0 and n ≥ 1 due to difficulties with n - 1 + 1
+      cases n <;> grind
+    · grind
