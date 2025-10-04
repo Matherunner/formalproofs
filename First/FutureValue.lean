@@ -40,15 +40,18 @@ theorem fv_inc_sol_satisfied (p₀ r rₚ c₀ : ℝ) :
   intro n
   induction n with
   | zero => simp
-  | succ n ih =>
+  | succ n =>
     by_cases h₁ : r ≠ rₚ
     · grind [fv_inc]
     by_cases h₂ : n = 0
     · simp [h₂]
       grind [fv_inc]
-    suffices : c₀ * (1 + rₚ) ^ (n + 1) + p₀ * n * (1 + rₚ) ^ (n - 1 + 1) =
-        (1 + rₚ) * fv_inc n p₀ rₚ rₚ c₀
-    · have : 1 ≤ n := Nat.one_le_iff_ne_zero.mpr h₂
-      simp_all
-      linarith
-    grind [fv_inc]
+    simp at h₁
+    simp [h₁]
+    rw [eq_comm]
+    have h₃ : n = n - 1 + 1 := by grind
+    calc
+      _ = c₀ * (1 + rₚ) ^ (n + 1) + p₀ * n * (1 + rₚ) ^ (n - 1 + 1) + p₀ * (1 + rₚ) ^ n := by
+        rw [h₃]
+        grind
+      _ = (1 + rₚ) * fv_inc n p₀ rₚ rₚ c₀ + p₀ * (1 + rₚ) ^ n := by grind [fv_inc]
