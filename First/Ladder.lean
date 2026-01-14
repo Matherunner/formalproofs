@@ -99,16 +99,15 @@ lemma n_not_vert {x : ℝ} (h : Real.cos x ≠ 0) : uvec_k ⨯₃ ladder_n_by_φ
 /--
 Parametrisation of vertical climbing velocity in terms of three angles.
 -/
-lemma vert_v_simp {φ γ ω : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) :
+lemma vert_v_simp {φ γ ω : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
     ladder_vert_v_scaled_angles φ γ ω =
       -Real.sin ω - √2 * (Real.cos γ * Real.cos ω * Real.cos φ + Real.sin ω * Real.sin φ)
       * Real.cos (φ + Real.pi / 4) := by
   have zero_lt_cos_φ : 0 < Real.cos φ := by
-    rw [← Real.cos_neg, ← Real.arccos_lt_pi_div_two, Real.arccos_cos (by linarith) (by linarith)]
-    linarith
+    apply Real.cos_pos_of_mem_Ioo
+    constructor <;> linarith
   simp only [ladder_vert_v_scaled_angles, ladder, n_not_vert (by linarith), ladder_u_by_γ_ω]
   simp [ladder_n_by_φ, crossProduct, normalise, norm3, uvec_k, Real.cos_add]
-
   field_simp
   simp [Real.sqrt_sq (by linarith)]
   linarith
@@ -116,7 +115,7 @@ lemma vert_v_simp {φ γ ω : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) 
 /--
 An expression for the postulated maximum.
 -/
-lemma vert_v_star {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) :
+lemma vert_v_star {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
     ladder_vert_v_scaled_angles φ Real.pi (-(φ + Real.pi / 4)) = √2 * Real.cos φ := by
   simp [vert_v_simp φ_bounds, Real.sin_neg, Real.cos_neg, Real.sin_add, Real.cos_add,
     Real.sin_pi_div_four, Real.cos_pi_div_four, Real.cos_pi]
@@ -135,24 +134,26 @@ lemma vert_v_star {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) :
 V parametrisation is monotonically increasing for γ ∈ [0, π].
 -/
 lemma vert_v_simp_γ_monotone {φ ω : ℝ}
-    (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0)
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4)
     (ω_bounds : -Real.pi / 2 ≤ ω ∧ ω ≤ Real.pi / 2) :
     MonotoneOn (fun γ ↦ ladder_vert_v_scaled_angles φ γ ω) (Set.Icc 0 Real.pi) := by
   intro a arange b brange a_le_b
-  change ladder_vert_v_scaled_angles φ a ω ≤ ladder_vert_v_scaled_angles φ b ω
-  repeat rw [vert_v_simp φ_bounds]
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
+  simp only [vert_v_simp h_φ]
   gcongr
   · apply Real.cos_nonneg_of_mem_Icc
     constructor <;> linarith
-  · grind [Real.cos_nonneg_of_mem_Icc]
-  · grind [Real.cos_nonneg_of_mem_Icc]
-  · grind [Real.cos_le_cos_of_nonneg_of_le_pi]
+  · apply Real.cos_nonneg_of_mem_Icc
+    constructor <;> linarith
+  · apply Real.cos_nonneg_of_mem_Icc
+    constructor <;> linarith
+  · exact Real.cos_le_cos_of_nonneg_of_le_pi arange.1 brange.2 a_le_b
 
 /--
 V is maximised at γ = π for all φ and ω in their respective bounds.
 -/
 lemma vert_v_max_γ_eq_pi {φ ω : ℝ}
-    (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0)
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4)
     (ω_bounds : -Real.pi / 2 ≤ ω ∧ ω ≤ Real.pi / 2) :
     IsMaxOn (fun γ ↦ ladder_vert_v_scaled_angles φ γ ω) (Set.Icc 0 Real.pi) Real.pi := by
   intro γ γrange
@@ -164,13 +165,14 @@ lemma vert_v_max_γ_eq_pi {φ ω : ℝ}
 /--
 Fix γ = π, then V is maximised when ω = -(φ + Real.pi / 4).
 -/
-lemma vert_v_max_ω_when_γ_eq_π {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) :
+lemma vert_v_max_ω_when_γ_eq_π {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4) :
     IsMaxOn (ladder_vert_v_scaled_angles φ Real.pi)
       (Set.Icc (-Real.pi / 2) (Real.pi / 2))
       (-(φ + Real.pi / 4)):= by
   intro ω ωset
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
   set p := ω + φ + Real.pi / 4 with hp
-  simp only [show ω = p - φ - Real.pi / 4 by linarith, vert_v_star φ_bounds, vert_v_simp φ_bounds]
+  simp only [show ω = p - φ - Real.pi / 4 by linarith, vert_v_star h_φ, vert_v_simp h_φ]
   calc
     _ = -Real.sin (p - φ - Real.pi / 4) +
         √2 * Real.cos (p - φ - Real.pi / 4 + φ) * Real.cos (φ + Real.pi / 4) := by
@@ -198,10 +200,9 @@ lemma vert_v_max_ω_when_γ_eq_π {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ 
         nlinarith
 
 /--
-The vertical component of player velocity is maximised when the input u looks directly
-away from the ladder (γ = π) and at a specific pitch calculated from the ladder's tilt.
+Maximisation of the vertical component of player velocity.
 -/
-theorem vert_v_max {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ 0) :
+theorem vert_v_max {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4) :
     IsMaxOn (fun ⟨γ, ω⟩↦ ladder_vert_v_scaled_angles φ γ ω)
       ((Set.Icc 0 Real.pi) ×ˢ (Set.Icc (-Real.pi / 2) (Real.pi / 2)))
       (Real.pi, -(φ + Real.pi / 4)) := by
