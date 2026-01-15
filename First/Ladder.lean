@@ -11,8 +11,26 @@ See https://jwchong.com/hl/ladder.html for background and context.
 
 ## Main results
 
-* `vert_v_max`: The main theorem proving that for a given ladder tilt φ ∈ [0, -π),
-  the vertical velocity is maximised at γ = π and ω = -(φ + π/4).
+We parametrise the ladder input velocity u in terms of two angles: γ and ω. This
+is defined by `ladder_u_by_γ_ω`. Then we parametrise the vertical climbing velocity
+by the γ and ω in `ladder_vert_v_scaled_angles`.
+
+If the ladder norma tilt is φ = ±π/2, then the vertical velocity is always zero, as shown
+by the theorem `vert_v_zero`.
+
+`vert_v_max` is the main theorem proving the maximum points for any ladder normal tilt
+φ ∈ (-π/2, π/2). You will note that this theorem requires no addition
+assumptions besides the bounds for φ. This theorem is unconstrained in the sense that
+it gives the maximum for ω ∈ [-π/2, π/2].
+
+When both forward/back and moveright/moveleft keys are pressed, we can't realise angles
+ω < -π/4 or π/4 < ω. So `vert_v_max_constrained` is similar to `vert_v_max`, except it
+is subject to the additional constraint ω ∈ [-π/4, π/4].
+
+`vert_v_max_value_constrained_eq` proves that holding both forward/back and moveright/moveleft
+is always better than holding just one key when climbing, despite the constraint on the direction
+of input velocity u when holding two keys and the unconstrained viewing direction when holding
+just one key.
 -/
 
 open Matrix
@@ -41,6 +59,18 @@ lemma dot_self_nonneg {x : Vec3} : 0 ≤ x ⬝ᵥ x := by
 lemma uvec_k_dot_self : uvec_k ⬝ᵥ uvec_k = 1 := by
   simp [uvec_k]
 
+lemma cos_add_sin {x : ℝ} : Real.cos x + Real.sin x = √2 * Real.cos (x - Real.pi / 4) := by
+  simp [Real.cos_sub]
+  ring_nf
+  simp [Real.sq_sqrt]
+
+lemma cos_three_pi_div_four : Real.cos (3 * Real.pi / 4) = -√2 / 2 := by
+  rw [neg_div, neg_eq_iff_eq_neg.mpr]
+  simp [← Real.cos_sub_pi, show 3 * Real.pi / 4 - Real.pi = -(Real.pi / 4) by linarith]
+
+lemma sin_three_pi_div_four : Real.sin (3 * Real.pi / 4) = √2 / 2 := by
+  simp [show 3 * Real.pi / 4 = Real.pi - Real.pi / 4 by linarith]
+
 /--
 The **fundamental ladder equation**, returns the player velocity in 3D.
 -/
@@ -54,6 +84,9 @@ noncomputable def ladder_n_by_φ (φ : ℝ) : Vec3 := ![Real.cos φ, 0, -Real.si
 
 noncomputable def ladder_u_by_γ_ω (γ ω : ℝ) : Vec3 :=
   ![Real.cos γ * Real.cos ω, Real.sin γ * Real.cos ω, -Real.sin ω]
+
+-- TODO: prove bijection between parametrisation and n
+-- TODO: prove symmetry of rotation around z axis
 
 /--
 The vertical component of velocity divided by the M and parametrised by angles.
@@ -71,6 +104,16 @@ theorem dot_ladder_n_eq_zero {u n : Vec3} (nunit : IsUnitVec n) : n ⬝ᵥ ladde
   repeat simp [is_vertical, nunit, dotProduct_comm]
 
 def u_n_angle (u n : Vec3) (α : ℝ) := u ⬝ᵥ n = (norm3 u) * (norm3 n) * Real.cos α
+
+/--
+The vertical climbing velocity is always 0 if the normal vector is vertical.
+-/
+theorem vert_v_zero {u n : Vec3} (h : n = uvec_k ∨ n = -uvec_k) :
+    uvec_k ⬝ᵥ ladder u n = 0 := by
+  simp [ladder]
+  rcases h with h₁ | h₂
+  · simp [h₁, dotProduct_comm, uvec_k_dot_self]
+  · simp [h₂, dotProduct_comm, uvec_k_dot_self]
 
 /--
 Parametrising vertical ladder vertical climbing speed in terms of α.
@@ -103,9 +146,7 @@ lemma vert_v_simp {φ γ ω : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.
     ladder_vert_v_scaled_angles φ γ ω =
       -Real.sin ω - √2 * (Real.cos γ * Real.cos ω * Real.cos φ + Real.sin ω * Real.sin φ)
       * Real.cos (φ + Real.pi / 4) := by
-  have zero_lt_cos_φ : 0 < Real.cos φ := by
-    apply Real.cos_pos_of_mem_Ioo
-    constructor <;> linarith
+  have zero_lt_cos_φ : 0 < Real.cos φ := Real.cos_pos_of_mem_Ioo (by constructor <;> linarith)
   simp only [ladder_vert_v_scaled_angles, ladder, n_not_vert (by linarith), ladder_u_by_γ_ω]
   simp [ladder_n_by_φ, crossProduct, normalise, norm3, uvec_k, Real.cos_add]
   field_simp
@@ -115,7 +156,7 @@ lemma vert_v_simp {φ γ ω : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.
 /--
 An expression for the postulated maximum.
 -/
-lemma vert_v_star {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+lemma vert_v_star_γ_eq_π {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
     ladder_vert_v_scaled_angles φ Real.pi (-(φ + Real.pi / 4)) = √2 * Real.cos φ := by
   simp [vert_v_simp φ_bounds, Real.sin_neg, Real.cos_neg, Real.sin_add, Real.cos_add,
     Real.sin_pi_div_four, Real.cos_pi_div_four, Real.cos_pi]
@@ -125,13 +166,61 @@ lemma vert_v_star {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2
   calc
     _ = Real.sin φ + Real.cos φ +
         (Real.sin φ ^ 2 + Real.cos φ ^ 2) * (Real.cos φ - Real.sin φ) := by
-      ring
+      ring_nf
     _ = 2 * Real.cos φ := by
       rw [Real.sin_sq_add_cos_sq]
       group
 
 /--
-V parametrisation is monotonically increasing for γ ∈ [0, π].
+An expression for the postulated maximum at γ = 0 and ω = φ - 3π/4.
+-/
+lemma vert_v_star_γ_eq_zero {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ 0 (φ - 3 * Real.pi / 4) = √2 * Real.cos φ := by
+  simp [vert_v_simp φ_bounds, ← Real.cos_sub, cos_three_pi_div_four, mul_div, ← Real.sin_add_pi]
+  calc
+    _ = Real.cos (φ + Real.pi / 4) + Real.sin (φ + Real.pi / 4) := by
+      group
+    _ = √2 * Real.cos φ := by
+      simp [cos_add_sin]
+
+/--
+An expression for the postulated maximum at γ = π and ω = -π/4.
+-/
+lemma vert_v_star_γ_eq_π_constrained {φ : ℝ}
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ Real.pi (-(Real.pi / 4)) = √2 * Real.cos φ ^ 2 := by
+  simp [vert_v_simp φ_bounds]
+  calc
+    _ = √2 / 2 + (Real.cos φ + Real.sin φ) * Real.cos (φ + Real.pi / 4) := by
+      ring_nf
+      simp [Real.sq_sqrt]
+      group
+    _ = √2 * Real.cos φ ^ 2 := by
+      simp [Real.cos_add, Real.cos_pi_div_four, Real.sin_pi_div_four]
+      ring_nf
+      simp only [Real.sin_sq]
+      group
+
+/--
+An expression for the postulated maximum at γ = 0 and ω = -π/4.
+-/
+lemma vert_v_star_γ_eq_zero_constrained {φ : ℝ}
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ 0 (-(Real.pi / 4)) = √2 / 2 * Real.sin (2 * φ) := by
+  simp [vert_v_simp φ_bounds]
+  calc
+    _ = √2 / 2 - (Real.cos φ - Real.sin φ) * Real.cos (φ + Real.pi / 4) := by
+      ring_nf
+      simp [Real.sq_sqrt]
+      group
+    _ = √2 / 2 * Real.sin (2 * φ) := by
+      simp [Real.cos_add, Real.cos_pi_div_four, Real.sin_pi_div_four, Real.sin_two_mul]
+      ring_nf
+      simp only [Real.sin_sq]
+      group
+
+/--
+V parametrisation is monotonically increasing for γ ∈ [0, π] and φ ∈ (-π/2, π/4].
 -/
 lemma vert_v_simp_γ_monotone {φ ω : ℝ}
     (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4)
@@ -141,26 +230,87 @@ lemma vert_v_simp_γ_monotone {φ ω : ℝ}
   have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
   simp only [vert_v_simp h_φ]
   gcongr
-  · apply Real.cos_nonneg_of_mem_Icc
-    constructor <;> linarith
-  · apply Real.cos_nonneg_of_mem_Icc
-    constructor <;> linarith
-  · apply Real.cos_nonneg_of_mem_Icc
-    constructor <;> linarith
+  · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+  · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+  · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
   · exact Real.cos_le_cos_of_nonneg_of_le_pi arange.1 brange.2 a_le_b
+
+/--
+V parametrisation is antitone for γ ∈ [0, π] and φ ∈ (π/4, π/2).
+-/
+lemma vert_v_simp_γ_antitone {φ ω : ℝ}
+    (φ_bounds : Real.pi / 4 < φ ∧ φ < Real.pi / 2)
+    (ω_bounds : -Real.pi / 2 ≤ ω ∧ ω ≤ Real.pi / 2) :
+    AntitoneOn (fun γ ↦ ladder_vert_v_scaled_angles φ γ ω) (Set.Icc 0 Real.pi) := by
+  intro a arange b brange a_le_b
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
+  simp only [vert_v_simp h_φ, sub_le_sub_iff_left]
+  have h_cos_neg : Real.cos (φ + Real.pi / 4) < 0 :=
+    Real.cos_neg_of_pi_div_two_lt_of_lt (by linarith) (by linarith)
+  -- Need this to make gcongr work
+  simp [mul_le_mul_right_of_neg h_cos_neg]
+  gcongr
+  · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+  · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+  · exact Real.antitoneOn_cos arange brange a_le_b
 
 /--
 V is maximised at γ = π for all φ and ω in their respective bounds.
 -/
-lemma vert_v_max_γ_eq_pi {φ ω : ℝ}
+lemma vert_v_max_γ_eq_π {φ ω : ℝ}
     (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4)
     (ω_bounds : -Real.pi / 2 ≤ ω ∧ ω ≤ Real.pi / 2) :
     IsMaxOn (fun γ ↦ ladder_vert_v_scaled_angles φ γ ω) (Set.Icc 0 Real.pi) Real.pi := by
   intro γ γrange
-  simp at γrange
   apply vert_v_simp_γ_monotone φ_bounds ω_bounds γrange
   · simp [Real.pi_nonneg]
-  · linarith
+  · exact γrange.2
+
+/--
+V is maximised at γ = 0 for all φ and ω in their respective bounds.
+-/
+lemma vert_v_max_γ_eq_zero {φ ω : ℝ}
+    (φ_bounds : Real.pi / 4 < φ ∧ φ < Real.pi / 2)
+    (ω_bounds : -Real.pi / 2 ≤ ω ∧ ω ≤ Real.pi / 2) :
+    IsMaxOn (fun γ ↦ ladder_vert_v_scaled_angles φ γ ω) (Set.Icc 0 Real.pi) 0 := by
+  intro γ γrange
+  apply vert_v_simp_γ_antitone φ_bounds ω_bounds
+  · simp [Set.mem_Icc]
+    positivity
+  · exact γrange
+  · exact γrange.1
+
+lemma vert_v_max_ω_when_γ_eq_zero {φ : ℝ} (φ_bounds : Real.pi / 4 < φ ∧ φ < Real.pi / 2) :
+    IsMaxOn (ladder_vert_v_scaled_angles φ 0)
+      (Set.Icc (-Real.pi / 2) (Real.pi / 2))
+      (φ - 3 * Real.pi / 4) := by
+  intro ω ωset
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
+  set p := ω - φ + 3 * Real.pi / 4 with hp
+  simp only [show ω = p + φ - 3 * Real.pi / 4 by linarith, vert_v_star_γ_eq_zero h_φ,
+    vert_v_simp h_φ, Real.cos_zero, one_mul]
+  calc
+    _ = Real.sin (p + (φ + Real.pi / 4)) - √2 * Real.cos (p + φ - 3 * Real.pi / 4 - φ) *
+        Real.cos (φ + Real.pi / 4) := by
+      simp only [Real.cos_sub, ← Real.sin_add_pi]
+      group
+    _ = Real.sin (p + (φ + Real.pi / 4)) - √2 * Real.cos (p - 3 * Real.pi / 4) *
+        Real.cos (φ + Real.pi / 4) := by
+      group
+    _ = Real.sin (p + (φ + Real.pi / 4)) - √2 ^ 2 / 2 * (-Real.cos p + Real.sin p) *
+        Real.cos (φ + Real.pi / 4) := by
+      simp only [Real.cos_sub, cos_three_pi_div_four, sin_three_pi_div_four]
+      group
+    _ = Real.cos p * (Real.cos (φ + Real.pi / 4) + Real.sin (φ + Real.pi / 4)) := by
+      simp [Real.sq_sqrt, Real.sin_add]
+      group
+    _ ≤ √2 * Real.cos φ := by
+      simp [cos_add_sin]
+      group
+      gcongr
+      · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+      · rw [mul_le_iff_le_one_left (by positivity)]
+        exact Real.cos_le_one p
 
 /--
 Fix γ = π, then V is maximised when ω = -(φ + Real.pi / 4).
@@ -168,46 +318,294 @@ Fix γ = π, then V is maximised when ω = -(φ + Real.pi / 4).
 lemma vert_v_max_ω_when_γ_eq_π {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4) :
     IsMaxOn (ladder_vert_v_scaled_angles φ Real.pi)
       (Set.Icc (-Real.pi / 2) (Real.pi / 2))
-      (-(φ + Real.pi / 4)):= by
+      (-(φ + Real.pi / 4)) := by
   intro ω ωset
   have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
   set p := ω + φ + Real.pi / 4 with hp
-  simp only [show ω = p - φ - Real.pi / 4 by linarith, vert_v_star h_φ, vert_v_simp h_φ]
+  simp only [show ω = p - φ - Real.pi / 4 by linarith, vert_v_star_γ_eq_π h_φ, vert_v_simp h_φ]
   calc
     _ = -Real.sin (p - φ - Real.pi / 4) +
         √2 * Real.cos (p - φ - Real.pi / 4 + φ) * Real.cos (φ + Real.pi / 4) := by
       simp only [Real.cos_pi, Real.cos_add]
-      ring_nf
+      group
     _ = -Real.sin (p - (φ + Real.pi / 4)) +
         √2 * Real.cos (p - Real.pi / 4) * Real.cos (φ + Real.pi / 4)  := by
-      ring_nf
+      group
     _ = -Real.sin (p - (φ + Real.pi / 4)) +
-        (Real.cos p + Real.sin p) * Real.cos (φ + Real.pi / 4):= by
+        (Real.cos p + Real.sin p) * Real.cos (φ + Real.pi / 4) := by
       simp [Real.cos_sub, Real.cos_pi_div_four, Real.sin_pi_div_four]
       field_simp
       simp [Real.sq_sqrt]
     _ = Real.cos p * (Real.sin (φ + Real.pi / 4) + Real.cos (φ + Real.pi / 4)) := by
       simp [Real.sin_sub]
-      ring_nf
+      group
     _ = √2 * Real.cos p * Real.cos φ := by
       simp only [Real.sin_add, Real.cos_add, Real.cos_pi_div_four, Real.sin_pi_div_four]
-      ring_nf
+      group
     √2 * Real.cos p * Real.cos φ ≤ √2 * Real.cos φ := by
       gcongr
       · grind [Real.cos_nonneg_of_mem_Icc]
-      · have hcos : Real.cos p ≤ 1 := Real.cos_le_one p
-        have hsqrt : 0 ≤ √2 := by positivity
+      · have hsqrt : 0 ≤ √2 := by positivity
+        have hcos : Real.cos p ≤ 1 := Real.cos_le_one p
         nlinarith
 
 /--
-Maximisation of the vertical component of player velocity.
+Fix γ = 0, then V for φ ∈ (π/4, π/2) is maximised at ω = -π/4
+subject to the constraint ω ∈ [-π/4, π/4].
 -/
-theorem vert_v_max {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ ≤ Real.pi / 4) :
-    IsMaxOn (fun ⟨γ, ω⟩↦ ladder_vert_v_scaled_angles φ γ ω)
-      ((Set.Icc 0 Real.pi) ×ˢ (Set.Icc (-Real.pi / 2) (Real.pi / 2)))
-      (Real.pi, -(φ + Real.pi / 4)) := by
-  intro ⟨γ, ω⟩ ⟨γ_bounds, ω_bounds⟩
+lemma vert_v_max_ω_γ_eq_zero_constrained {φ : ℝ} (φ_bounds : Real.pi / 4 < φ ∧ φ < Real.pi / 2) :
+    IsMaxOn (ladder_vert_v_scaled_angles φ 0)
+      (Set.Icc (-Real.pi / 4) (Real.pi / 4))
+      (-(Real.pi / 4)) := by
+  intro ω ωset
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by constructor <;> linarith
+  simp only [vert_v_star_γ_eq_zero_constrained h_φ, vert_v_simp h_φ, Real.cos_add,
+    Real.cos_pi_div_four, Real.sin_pi_div_four]
+  calc
+    _ = -Real.cos φ * (Real.sin ω * Real.cos φ + Real.cos ω * Real.cos φ +
+        Real.sin ω * Real.sin φ - Real.cos ω * Real.sin φ) := by
+      ring_nf
+      simp [Real.sq_sqrt, Real.sin_sq]
+      group
+    _ = -Real.cos φ * (Real.sin (ω - φ) + Real.cos (ω - φ)) := by
+      simp only [Real.cos_sub, Real.sin_sub]
+      group
+    _ = √2 * -Real.sin (ω - φ + Real.pi / 4) * Real.cos φ := by
+      simp [Real.sin_add]
+      ring_nf
+      simp [Real.sq_sqrt]
+      group
+    _ ≤ √2 / 2 * Real.sin (2 * φ) := by
+      simp only [Real.sin_two_mul]
+      conv_rhs => ring_nf
+      gcongr
+      · exact Real.cos_nonneg_of_mem_Icc (by constructor <;> linarith)
+      rw [← Real.sin_neg]
+      apply Real.sin_le_sin_of_le_of_le_pi_div_two <;> grind
+
+/--
+Fix γ = π, then V for φ ∈ (0, π/4] is maximised at ω = -π/4
+subject to the constraint ω ∈ [-π/4, π/4].
+-/
+lemma vert_v_max_ω_γ_eq_π_constrained {φ : ℝ} (φ_bounds : 0 < φ ∧ φ ≤ Real.pi / 4) :
+    IsMaxOn (ladder_vert_v_scaled_angles φ Real.pi)
+      (Set.Icc (-Real.pi / 4) (Real.pi / 4))
+      (-(Real.pi / 4)) := by
+  intro ω ωset
+  have h_φ : -Real.pi / 2 < φ ∧ φ < Real.pi / 2 := by
+    constructor <;> linarith [φ_bounds.1, Real.pi_pos]
+  have h_cos : 0 < Real.cos φ := Real.cos_pos_of_mem_Ioo (by constructor <;> linarith)
+  simp only [vert_v_star_γ_eq_π_constrained h_φ, vert_v_simp h_φ]
+  simp only [Real.cos_add, Real.cos_pi_div_four, Real.sin_pi_div_four]
+  calc
+    _ = -(Real.sin ω + Real.cos ω) * Real.cos φ * Real.sin φ -
+        (Real.sin ω - Real.cos ω) * Real.cos φ ^ 2 := by
+      ring_nf
+      simp [Real.sin_sq]
+      group
+    _ = Real.cos φ * (Real.cos (ω + φ) - Real.sin (ω + φ)) := by
+      simp [Real.cos_add, Real.sin_add]
+      group
+    _ = √2 * Real.cos φ * Real.cos (ω + φ + Real.pi / 4) := by
+      simp [Real.cos_add]
+      ring_nf
+      simp [Real.sq_sqrt]
+      group
+    _ ≤ √2 * Real.cos φ ^ 2 := by
+      rw [mul_assoc, mul_le_mul_iff_right₀ (show 0 < √2 by positivity)]
+      rw [pow_two, mul_le_mul_iff_right₀ h_cos]
+      apply Real.cos_le_cos_of_nonneg_of_le_pi
+      · linarith [φ_bounds.1]
+      · conv_rhs => rw [show Real.pi = Real.pi / 4 + Real.pi / 4 + Real.pi / 2 by linarith]
+        exact add_le_add_three ωset.2 φ_bounds.2 (by linarith)
+      · grind
+
+/--
+Postulated argmax for vertical climbing velocity.
+-/
+noncomputable def vert_v_argmax (φ : ℝ) : ℝ × ℝ :=
+  if φ ≤ Real.pi / 4 then
+    (Real.pi, -(φ + Real.pi / 4))
+  else
+    (0, φ - 3 * Real.pi / 4)
+
+/--
+Maximisation of the vertical player velocity for φ ∈ (-π/2, π/2).
+-/
+theorem vert_v_max {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    IsMaxOn (fun ⟨γ, ω⟩ ↦ ladder_vert_v_scaled_angles φ γ ω)
+      (Set.Icc (0, -Real.pi / 2) (Real.pi, Real.pi / 2))
+      (vert_v_argmax φ) := by
+  intro ⟨γ, ω⟩ ⟨⟨γ_lb, ω_lb⟩, ⟨γ_ub, ω_ub⟩⟩
+  unfold vert_v_argmax
   dsimp
-  trans
-  · exact vert_v_max_γ_eq_pi φ_bounds ω_bounds γ_bounds
-  · exact vert_v_max_ω_when_γ_eq_π φ_bounds ω_bounds
+  split_ifs
+  · trans
+    · apply vert_v_max_γ_eq_π <;> constructor <;> linarith
+    · apply vert_v_max_ω_when_γ_eq_π <;> constructor <;> linarith
+  · trans
+    · apply vert_v_max_γ_eq_zero <;> constructor <;> linarith
+    · apply vert_v_max_ω_when_γ_eq_zero <;> constructor <;> linarith
+
+/--
+Postulated value of the maximum vertical climbing velocity.
+-/
+noncomputable def vert_v_max_value (φ : ℝ) : ℝ := √2 * Real.cos φ
+
+/--
+Correctness of `vert_v_max_value` as the maximum value.
+-/
+theorem vert_v_max_value_eq {φ γ ω : ℝ}
+    (h_arg : (γ, ω) = vert_v_argmax φ)
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ γ ω = vert_v_max_value φ := by
+  unfold vert_v_argmax at h_arg
+  have h₁ : 0 < Real.cos φ := Real.cos_pos_of_mem_Ioo (by constructor <;> linarith)
+  have h₂ : Real.cos φ ≠ 0 := by linarith
+  simp only [ladder_vert_v_scaled_angles, ladder, ladder_n_by_φ, ladder_u_by_γ_ω,
+    crossProduct, uvec_k, normalise, norm3, vert_v_max_value]
+  split_ifs at h_arg
+  · injection h_arg with h_γ h_ω
+    simp [h_γ, h_ω, h₂, ← pow_two]
+    rw [Real.sqrt_sq (by linarith [h₁]), inv_mul_cancel₀ h₂]
+    simp only [Real.sin_add, Real.cos_add, Real.sin_neg, Real.cos_neg, Real.sin_pi_div_four,
+      Real.cos_pi_div_four]
+    calc
+      _ = √2 / 2 * (Real.cos φ + Real.sin φ -
+          (Real.sin φ ^ 2 + Real.cos φ ^ 2) * (Real.sin φ - Real.cos φ)) := by
+        ring_nf
+      _ = √2 * Real.cos φ := by
+        simp [Real.sin_sq_add_cos_sq]
+        group
+  · injection h_arg with h_γ h_ω
+    simp [h_γ, h_ω, h₂, ← pow_two]
+    rw [Real.sqrt_sq (by linarith [h₁]), inv_mul_cancel₀ h₂]
+    simp only [Real.sin_sub, Real.cos_sub, sin_three_pi_div_four, cos_three_pi_div_four]
+    calc
+      _ = √2 / 2 * (Real.sin φ + Real.cos φ -
+          (Real.sin φ ^ 2 + Real.cos φ ^ 2) * (Real.sin φ - Real.cos φ)) := by
+        ring_nf
+      _ = √2 * Real.cos φ := by
+        simp [Real.sin_sq_add_cos_sq]
+        group
+
+/--
+Postulated constrained argmax for vertical climbing velocity.
+-/
+noncomputable def vert_v_argmax_constrained (φ : ℝ) : ℝ × ℝ :=
+  if φ ≤ 0 then
+    (Real.pi, -(φ + Real.pi / 4))
+  else if φ ≤ Real.pi / 4 then
+    (Real.pi, -(Real.pi / 4))
+  else
+    (0, -(Real.pi / 4))
+
+/--
+Maximisation of the vertical player velocity for φ ∈ (-π/2, π/2) subject to
+the constraint ω ∈ [-π/4, π/4] corresponding to when both moveright/moveleft
+and forward/back keys are pressed.
+-/
+theorem vert_v_max_constrained {φ : ℝ} (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    IsMaxOn (fun ⟨γ, ω⟩ ↦ ladder_vert_v_scaled_angles φ γ ω)
+      (Set.Icc (0, -Real.pi / 4) (Real.pi, Real.pi / 4))
+      (vert_v_argmax_constrained φ) := by
+  intro ⟨γ, ω⟩ ⟨⟨γ_lb, ω_lb⟩, ⟨γ_ub, ω_ub⟩⟩
+  unfold vert_v_argmax_constrained
+  dsimp
+  split_ifs
+  · trans
+    · apply vert_v_max_γ_eq_π <;> constructor <;> linarith
+    · apply vert_v_max_ω_when_γ_eq_π <;> constructor <;> linarith
+  · trans
+    · apply vert_v_max_γ_eq_π <;> constructor <;> linarith
+    · apply vert_v_max_ω_γ_eq_π_constrained <;> constructor <;> linarith
+  · trans
+    · apply vert_v_max_γ_eq_zero <;> constructor <;> linarith
+    · apply vert_v_max_ω_γ_eq_zero_constrained <;> constructor <;> linarith
+
+/--
+Postulated value of the constrained maximum vertical climbing velocity.
+-/
+noncomputable def vert_v_max_value_constrained (φ : ℝ) : ℝ :=
+  if φ ≤ 0 then
+    √2 * Real.cos φ
+  else if φ ≤ Real.pi / 4 then
+    √2 * Real.cos φ ^ 2
+  else
+    √2 / 2 * Real.sin (2 * φ)
+
+/--
+Correctness of `vert_v_argmax_constrained` as the maximum value.
+-/
+theorem vert_v_max_value_constrained_eq {φ γ ω : ℝ}
+    (h_arg : ⟨γ, ω⟩ = vert_v_argmax_constrained φ)
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ γ ω = vert_v_max_value_constrained φ := by
+  unfold vert_v_argmax_constrained at h_arg
+  have h₁ : 0 < Real.cos φ := Real.cos_pos_of_mem_Ioo (by constructor <;> linarith)
+  have h₂ : Real.cos φ ≠ 0 := by linarith
+  simp only [ladder_vert_v_scaled_angles, ladder, ladder_n_by_φ, ladder_u_by_γ_ω,
+    crossProduct, uvec_k, normalise, norm3, vert_v_max_value_constrained]
+  split_ifs at h_arg with h_φ₁ h_φ₂
+  · injection h_arg with h_γ h_ω
+    simp [h_γ, h_ω, h₂, h_φ₁, ← pow_two]
+    rw [Real.sqrt_sq (by linarith [h₁]), inv_mul_cancel₀ h₂]
+    simp only [Real.sin_add, Real.cos_add, Real.sin_neg, Real.cos_neg, Real.sin_pi_div_four,
+      Real.cos_pi_div_four]
+    field_simp
+    calc
+      _ = Real.cos φ + Real.sin φ +
+          (Real.sin φ ^ 2 + Real.cos φ ^ 2) * (-Real.sin φ + Real.cos φ) := by
+        ring_nf
+      _ = 2 * Real.cos φ := by
+        simp [Real.sin_sq_add_cos_sq]
+        group
+  · injection h_arg with h_γ h_ω
+    simp [h_γ, h_ω, h₂, h_φ₁, h_φ₂, ← pow_two]
+    rw [Real.sqrt_sq (by linarith [h₁]), inv_mul_cancel₀ h₂]
+    calc
+      _ = √2 / 2 * (Real.cos φ ^ 2 + 1 - Real.sin φ ^ 2) := by
+        group
+      _ = √2 * Real.cos φ ^ 2 := by
+        simp [Real.sin_sq]
+        group
+  · injection h_arg with h_γ h_ω
+    simp [h_γ, h_ω, h₂, h_φ₁, h_φ₂, ← pow_two]
+    rw [Real.sqrt_sq (by linarith [h₁]), inv_mul_cancel₀ h₂]
+    calc
+      _ = √2 / 2 * (1 - (Real.sin φ ^ 2 + Real.cos φ ^ 2) + 2 * Real.sin φ * Real.cos φ) := by
+        group
+      _ = √2 / 2 * Real.sin (2 * φ) := by
+        simp [Real.sin_sq_add_cos_sq, Real.sin_two_mul]
+
+/--
+Multiplier to the formulae for vertical climbing velocity derived above when both
+the forward/back and the moveright/moveleft keys are pressed.
+-/
+noncomputable def fs_mul : ℝ := √2
+
+/--
+Holding both forward/back and moveright/moveleft maximises vertical climbing velocity
+compared to holding only one key, even after account for the constraint on ω when holding
+the two keys.
+-/
+theorem vert_v_max_f_le_fs {φ γ_f ω_f γ_fs ω_fs : ℝ}
+    {h_f : (γ_f, ω_f) = vert_v_argmax φ}
+    {h_fs : (γ_fs, ω_fs) = vert_v_argmax_constrained φ}
+    (φ_bounds : -Real.pi / 2 < φ ∧ φ < Real.pi / 2) :
+    ladder_vert_v_scaled_angles φ γ_f ω_f ≤ fs_mul * ladder_vert_v_scaled_angles φ γ_fs ω_fs := by
+  have h_sqrt_2 : 0 < √2 := by positivity
+  have h_cos : 0 < Real.cos φ := Real.cos_pos_of_mem_Ioo (by constructor <;> linarith)
+  rw [fs_mul, vert_v_max_value_eq h_f φ_bounds, vert_v_max_value,
+    vert_v_max_value_constrained_eq h_fs φ_bounds, vert_v_max_value_constrained]
+  split_ifs
+  · rw [mul_le_mul_iff_right₀ h_sqrt_2, le_mul_iff_one_le_left h_cos]
+    linarith [Real.one_lt_sqrt_two]
+  · rw [mul_le_mul_iff_right₀ h_sqrt_2, pow_two, ← mul_assoc, le_mul_iff_one_le_left h_cos,
+      ← div_le_iff₀' h_sqrt_2, ← Real.sqrt_div_self', ← Real.cos_pi_div_four]
+    apply Real.cos_le_cos_of_nonneg_of_le_pi <;> linarith
+  · simp only [Real.sin_two_mul]
+    rw [mul_le_mul_iff_right₀ h_sqrt_2, ← mul_assoc, le_mul_iff_one_le_left h_cos]
+    group
+    rw [← div_le_iff₀' h_sqrt_2, ← Real.sqrt_div_self', ← Real.sin_pi_div_four]
+    apply Real.sin_le_sin_of_le_of_le_pi_div_two <;> linarith
