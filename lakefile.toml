@@ -8,6 +8,7 @@ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
 autoImplicit = false
 relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
+linter.style.header.license = "Released under GPL-3.0-only license as described in the file LICENSE."
 maxSynthPendingDepth = 3
 
 [[require]]

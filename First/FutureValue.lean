@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2025 Jiangwei Chong. All rights reserved.
+Released under GPL-3.0-only license as described in the file LICENSE.
+Authors: Jiangwei Chong
+-/
+
 import Mathlib.Tactic
 
 -- Future value with fixed contribution recurrence relation

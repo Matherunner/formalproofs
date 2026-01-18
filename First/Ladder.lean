@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2025 Jiangwei Chong. All rights reserved.
+Released under GPL-3.0-only license as described in the file LICENSE.
+Authors: Jiangwei Chong
+-/
+
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.CrossProduct
 
@@ -19,7 +25,7 @@ If the ladder norma tilt is φ = ±π/2, then the vertical velocity is always ze
 by the theorem `vert_v_zero`.
 
 `vert_v_max` is the main theorem proving the maximum points for any ladder normal tilt
-φ ∈ (-π/2, π/2). You will note that this theorem requires no addition
+φ ∈ (-π/2, π/2). You will note that this theorem requires no additional
 assumptions besides the bounds for φ. This theorem is unconstrained in the sense that
 it gives the maximum for ω ∈ [-π/2, π/2].
 
@@ -58,6 +64,15 @@ lemma dot_self_nonneg {x : Vec3} : 0 ≤ x ⬝ᵥ x := by
 
 lemma uvec_k_dot_self : uvec_k ⬝ᵥ uvec_k = 1 := by
   simp [uvec_k]
+
+lemma vec_horizontal_pos {n : Vec3} (h : uvec_k ⨯₃ n ≠ 0) : 0 < n 0 ^ 2 + n 1 ^ 2 := by
+  simp [crossProduct, uvec_k] at h
+  by_cases h₁ : n 1 = 0
+  · simp [h₁]
+    simp [h₁] at h
+    exact sq_pos_of_ne_zero h
+  have h₂ : 0 < n 1 ^ 2 := sq_pos_iff.mpr h₁
+  nlinarith
 
 lemma cos_add_sin {x : ℝ} : Real.cos x + Real.sin x = √2 * Real.cos (x - Real.pi / 4) := by
   simp [Real.cos_sub]
@@ -609,3 +624,93 @@ theorem vert_v_max_f_le_fs {φ γ_f ω_f γ_fs ω_fs : ℝ}
     group
     rw [← div_le_iff₀' h_sqrt_2, ← Real.sqrt_div_self', ← Real.sin_pi_div_four]
     apply Real.sin_le_sin_of_le_of_le_pi_div_two <;> linarith
+
+noncomputable def rotateAroundZ (θ : ℝ) (v : Vec3) : Vec3 :=
+  ![v 0 * Real.cos θ - v 1 * Real.sin θ, v 0 * Real.sin θ + v 1 * Real.cos θ, v 2]
+
+lemma cross_product_z_symmetry {θ : ℝ} {n : Vec3} :
+    uvec_k ⨯₃ n = 0 ↔ uvec_k ⨯₃ rotateAroundZ θ n = 0 := by
+  constructor
+  · sorry
+  · sorry
+
+theorem ladder_z_symmetry {θ : ℝ} {u n : Vec3} :
+    (ladder u n) 2 = (ladder (rotateAroundZ θ u) (rotateAroundZ θ n)) 2 := by
+  unfold ladder
+  by_cases h : uvec_k ⨯₃ n = 0
+  · simp only [h, cross_product_z_symmetry.mp]
+    simp [rotateAroundZ]
+    left
+    group
+    apply Eq.symm
+    calc
+      _ = u 0 * n 0 * (Real.sin θ ^ 2 + Real.cos θ ^ 2) +
+          u 1 * n 1 * (Real.sin θ ^ 2 + Real.cos θ ^ 2) + u 2 * n 2 := by
+        group
+      _ = u ⬝ᵥ n := by
+        simp only [Real.sin_sq_add_cos_sq, vec3_dotProduct]
+        group
+
+  have n_not_vert : uvec_k ⨯₃ rotateAroundZ θ n ≠ 0 := by
+    intro h'
+    apply h
+    exact (cross_product_z_symmetry (θ := θ) (n := n)).mpr h'
+
+  simp [h, n_not_vert]
+  conv in rotateAroundZ θ u 2 => simp [rotateAroundZ]
+  rw [sub_right_inj]
+
+  simp [
+    show rotateAroundZ θ u ⬝ᵥ rotateAroundZ θ n * rotateAroundZ θ n 2 = u ⬝ᵥ n * n 2 by
+      simp [rotateAroundZ]
+      left
+      -- TODO: copy pasted from h₃
+      calc
+        _ = (Real.sin θ ^ 2 + Real.cos θ ^ 2) * u 0 * n 0 +
+            (Real.sin θ ^ 2 + Real.cos θ ^ 2) * u 1 * n 1 + u 2 * n 2 := by
+          group
+        _ = u ⬝ᵥ n := by
+          simp only [Real.sin_sq_add_cos_sq, vec3_dotProduct]
+          group
+  ]
+
+  have h₃ : rotateAroundZ θ u ⬝ᵥ rotateAroundZ θ n = u ⬝ᵥ n := by
+    simp [rotateAroundZ]
+    calc
+      _ = (Real.sin θ ^ 2 + Real.cos θ ^ 2) * u 0 * n 0 +
+          (Real.sin θ ^ 2 + Real.cos θ ^ 2) * u 1 * n 1 + u 2 * n 2 := by
+        group
+      _ = u ⬝ᵥ n := by
+        simp only [Real.sin_sq_add_cos_sq, vec3_dotProduct]
+        group
+  simp [h₃]
+  left
+
+  simp [crossProduct, rotateAroundZ, uvec_k]
+  conv_lhs =>
+    simp [normalise, norm3, ← pow_two]
+    field_simp
+  simp [normalise]
+
+  have h₅ : norm3 ![-(n 1 * Real.cos θ) + -(n 0 * Real.sin θ),
+      n 0 * Real.cos θ - n 1 * Real.sin θ, 0] = √(n 0 ^ 2 + n 1 ^ 2) := by
+    simp [norm3]
+    calc
+      _ = √((Real.sin θ ^ 2 + Real.cos θ ^ 2) * (n 0 ^ 2 + n 1 ^ 2)) := by
+        group
+      _ = √(n 0 ^ 2 + n 1 ^ 2) := by
+        simp [Real.sin_sq_add_cos_sq]
+  simp [h₅]
+  field_simp
+  conv in n 1 ^ 2 + n 0 ^ 2 => simp [add_comm]
+
+  rw [div_left_inj']
+  · apply Eq.symm
+    calc
+      _ = (n 0 ^ 2 + n 1 ^ 2) * (Real.sin θ ^ 2 + Real.cos θ ^ 2) := by
+        ring_nf
+      _ = n 0 ^ 2 + n 1 ^ 2 := by
+        simp [Real.sin_sq_add_cos_sq]
+
+  rw [Real.sqrt_ne_zero']
+  apply vec_horizontal_pos h
